@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="習慣">
+<meta name="theme-color" content="#ffffff">
+<title>習慣チェック</title>
+<link rel="apple-touch-icon" id="icon" href="">
+<style>
+:root{
+  --bg:#ffffff; --fg:#111111; --sub:#8a8a8a; --line:#e6e6e6; --panel:#f5f5f5;
+  --on:#111111; --on-fg:#ffffff;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --fg:#f2f2f2; --sub:#8c8c8c; --line:#262626; --panel:#161616;
+    --on:#f2f2f2; --on-fg:#000000;
+  }
+}
+*,*::before,*::after{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.wrap{max-width:560px;margin:0 auto;padding:20px 20px 120px}
+header{display:flex;justify-content:space-between;align-items:flex-start}
+.date{font-size:15px;color:var(--sub);font-weight:500;margin:8px 0 0}
+.edit-btn{
+  appearance:none;border:0;background:var(--panel);color:var(--fg);
+  font:inherit;font-size:15px;font-weight:600;
+  height:40px;padding:0 16px;border-radius:20px;cursor:pointer;
+}
+.edit-btn[aria-pressed="true"]{background:var(--on);color:var(--on-fg)}
+.score{margin:28px 0 8px;display:flex;align-items:baseline;gap:6px}
+.score .big{font-size:84px;line-height:1;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.score .of{font-size:28px;font-weight:600;color:var(--sub);font-variant-numeric:tabular-nums}
+.score .pct{margin-left:auto;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:28px}
+.bar>i{display:block;height:100%;width:0;background:var(--on);border-radius:3px;transition:width .35s ease}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:14px;min-height:68px;border-top:1px solid var(--line)}
+li:last-child{border-bottom:1px solid var(--line)}
+.row{flex:1;display:flex;align-items:center;gap:16px;min-height:68px;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.box{
+  flex:none;width:40px;height:40px;border-radius:12px;border:2px solid var(--fg);
+  display:grid;place-items:center;transition:background .15s ease;
+}
+.box svg{width:22px;height:22px;stroke:var(--on-fg);stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .2s ease}
+.done .box{background:var(--on)}
+.done .box svg{stroke-dashoffset:0}
+.label{font-size:19px;font-weight:600;line-height:1.35;word-break:break-word}
+.done .label{color:var(--sub);text-decoration:line-through;text-decoration-thickness:1.5px}
+.edit-input{
+  flex:1;min-width:0;height:48px;font:inherit;font-size:17px;font-weight:600;color:var(--fg);
+  background:var(--panel);border:0;border-radius:12px;padding:0 14px;outline:none;
+}
+.del{
+  flex:none;width:48px;height:48px;border-radius:12px;border:0;background:var(--panel);color:var(--fg);
+  font-size:24px;line-height:1;cursor:pointer;
+}
+.add{display:flex;gap:10px;margin-top:20px}
+.add input{
+  flex:1;min-width:0;height:52px;font:inherit;font-size:17px;color:var(--fg);
+  background:var(--panel);border:0;border-radius:14px;padding:0 16px;outline:none;
+}
+.add button{
+  flex:none;height:52px;padding:0 22px;border:0;border-radius:14px;
+  background:var(--on);color:var(--on-fg);font:inherit;font-size:17px;font-weight:700;cursor:pointer;
+}
+input::placeholder{color:var(--sub)}
+.empty{color:var(--sub);font-size:16px;line-height:1.7;padding:28px 0;text-align:center}
+.note{margin-top:28px;color:var(--sub);font-size:13px;line-height:1.7;text-align:center}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="date" id="date"></p>
+    <button class="edit-btn" id="editBtn" aria-pressed="false">編集</button>
+  </header>
+
+  <section class="score" aria-live="polite">
+    <span class="big" id="done">0</span>
+    <span class="of" id="total">/ 0</span>
+    <span class="pct" id="pct">0%</span>
+  </section>
+  <div class="bar" role="progressbar" aria-label="達成率" aria-valuemin="0" aria-valuemax="100" id="barWrap"><i id="bar"></i></div>
+
+  <ul id="list"></ul>
+
+  <div class="add" id="addArea" hidden>
+    <input id="newText" type="text" placeholder="新しい項目を入力" maxlength="60" enterkeyhint="done" autocomplete="off">
+    <button id="addBtn">追加</button>
+  </div>
+
+  <p class="note" id="note">チェックは毎日 日本時間の午前0時にリセットされます</p>
+</div>
+
+<script>
+(function(){
+  var KEY = 'habit-checklist-v1';
+  var TZ = 'Asia/Tokyo';
+  var memory = null; // localStorageが使えない場合の予備
+
+  // ---- 日本時間の日付 (YYYY-MM-DD) ----
+  var fmtDay = new Intl.DateTimeFormat('en-CA', {timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit'});
+  var fmtJa  = new Intl.DateTimeFormat('ja-JP', {timeZone: TZ, year:'numeric', month:'long', day:'numeric', weekday:'long'});
+  function todayJST(){ return fmtDay.format(new Date()); }
+
+  // ---- 保存・読み込み ----
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){
+        var s = JSON.parse(raw);
+        if(s && Array.isArray(s.items)){ s.checks = s.checks || {}; return s; }
+      }
+    }catch(e){}
+    if(memory) return memory;
+    return {
+      items:[
+        {id:uid(), text:'水を飲む'},
+        {id:uid(), text:'ストレッチ'},
+        {id:uid(), text:'読書'}
+      ],
+      checks:{},
+      date: todayJST()
+    };
+  }
+  function save(){
+    memory = state;
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  var state = load();
+  var editing = false;
+
+  // ---- 日付が変わっていたらチェックだけリセット ----
+  function resetIfNewDay(){
+    var t = todayJST();
+    if(state.date !== t){
+      state.date = t;
+      state.checks = {};
+      save();
+      render();
+      return true;
+    }
+    return false;
+  }
+
+  // ---- 表示 ----
+  var $ = function(id){ return document.getElementById(id); };
+  var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  function render(){
+    $('date').textContent = fmtJa.format(new Date());
+
+    var total = state.items.length;
+    var done = state.items.filter(function(it){ return state.checks[it.id]; }).length;
+    var pct = total ? Math.round(done / total * 100) : 0;
+    $('done').textContent = done;
+    $('total').textContent = '/ ' + total;
+    $('pct').textContent = pct + '%';
+    $('bar').style.width = pct + '%';
+    $('barWrap').setAttribute('aria-valuenow', pct);
+
+    var list = $('list');
+    if(!document.activeElement || document.activeElement.tagName !== 'INPUT' || !editing){
+      list.innerHTML = '';
+      if(!total){
+        var p = document.createElement('p');
+        p.className = 'empty';
+        p.innerHTML = '項目がありません。<br>右上の「編集」から追加してください。';
+        list.appendChild(p);
+      }
+      state.items.forEach(function(it){
+        var li = document.createElement('li');
+        if(editing){
+          var input = document.createElement('input');
+          input.className = 'edit-input';
+          input.type = 'text';
+          input.value = it.text;
+          input.maxLength = 60;
+          input.setAttribute('aria-label', '項目名');
+          input.addEventListener('change', function(){
+            var v = input.value.trim();
+            if(!v){ input.value = it.text; return; }
+            it.text = v; save();
+          });
+          var del = document.createElement('button');
+          del.className = 'del';
+          del.setAttribute('aria-label', '削除');
+          del.textContent = '×';
+          del.addEventListener('click', function(){
+            if(confirm('「' + it.text + '」を削除しますか？')){
+              state.items = state.items.filter(function(x){ return x.id !== it.id; });
+              delete state.checks[it.id];
+              save(); render();
+            }
+          });
+          li.appendChild(input); li.appendChild(del);
+        }else{
+          var on = !!state.checks[it.id];
+          var btn = document.createElement('button');
+          btn.className = 'row' + (on ? ' done' : '');
+          btn.setAttribute('role', 'checkbox');
+          btn.setAttribute('aria-checked', on);
+          btn.innerHTML = '<span class="box">' + CHECK_SVG + '</span><span class="label"></span>';
+          btn.querySelector('.label').textContent = it.text;
+          btn.addEventListener('click', function(){
+            resetIfNewDay();
+            if(state.checks[it.id]) delete state.checks[it.id]; else state.checks[it.id] = true;
+            save(); render();
+            if(navigator.vibrate) navigator.vibrate(8);
+          });
+          li.appendChild(btn);
+        }
+        list.appendChild(li);
+      });
+    }
+
+    $('addArea').hidden = !editing;
+    $('note').hidden = editing;
+    $('editBtn').textContent = editing ? '完了' : '編集';
+    $('editBtn').setAttribute('aria-pressed', editing);
+  }
+
+  // ---- 操作 ----
+  $('editBtn').addEventListener('click', function(){
+    editing = !editing;
+    if(document.activeElement) document.activeElement.blur();
+    render();
+  });
+  function addItem(){
+    var inp = $('newText');
+    var v = inp.value.trim();
+    if(!v){ inp.focus(); return; }
+    state.items.push({id:uid(), text:v});
+    inp.value = '';
+    save();
+    var wasFocused = true;
+    list_rerender();
+    if(wasFocused) inp.focus();
+  }
+  function list_rerender(){ var a = document.activeElement; if(a) a.blur(); render(); }
+  $('addBtn').addEventListener('click', addItem);
+  $('newText').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addItem(); }
+  });
+
+  // ---- 日付変更の検知 (起動時・復帰時・0時をまたいだ時) ----
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) resetIfNewDay(); });
+  window.addEventListener('pageshow', resetIfNewDay);
+  window.addEventListener('focus', resetIfNewDay);
+  setInterval(function(){
+    if(!resetIfNewDay()) $('date').textContent = fmtJa.format(new Date());
+  }, 15000);
+
+  // ---- ホーム画面用アイコンを生成 ----
+  try{
+    var c = document.createElement('canvas'); c.width = c.height = 180;
+    var g = c.getContext('2d');
+    g.fillStyle = '#111'; g.fillRect(0,0,180,180);
+    g.strokeStyle = '#fff'; g.lineWidth = 16; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(50,94); g.lineTo(80,124); g.lineTo(132,60); g.stroke();
+    $('icon').href = c.toDataURL('image/png');
+  }catch(e){}
+
+  // ---- 起動 ----
+  resetIfNewDay();
+  save();
+  render();
+})();
+</script>
+</body>
+</html>
